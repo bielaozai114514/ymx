@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ymx · 亚马逊选品闭环工作台</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #f2f6f5; color: #1b2b28;
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 14px; line-height: 1.6; padding-bottom: 40px;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 14px; }
+
+  /* 顶栏 */
+  header { background: #fff; border-bottom: 1px solid #e2ecea; position: sticky;
+    top: 0; z-index: 20; box-shadow: 0 1px 3px rgba(15,80,70,.05); }
+  .hbar { display: flex; align-items: center; justify-content: space-between;
+    max-width: 780px; margin: 0 auto; padding: 11px 14px; gap: 8px; }
+  .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .logo { width: 36px; height: 36px; border-radius: 10px; display: flex; flex: none;
+    align-items: center; justify-content: center; font-size: 19px;
+    background: linear-gradient(135deg,#0f766e,#14b8a6); color: #fff;
+    box-shadow: 0 3px 10px rgba(15,118,110,.28); }
+  .brand b { font-size: 15.5px; display: block; line-height: 1.2; }
+  .brand .bs { font-size: 11.5px; color: #7d9a95; line-height: 1.2; margin-top: 3px; }
+  .hactions { display: flex; gap: 6px; flex: none; }
+  .hbtn { background: #f0f6f5; border: 1px solid #dbe9e7; color: #2c5f58;
+    padding: 7px 11px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .hbtn:hover { background: #e6f1ef; }
+  .hbtn.on { background: #0f766e; color: #fff; border-color: #0f766e; }
+
+  .card { background: #fff; border: 1px solid #e2ecea; border-radius: 14px;
+    padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15,80,70,.04); }
+  .card h3 { margin: 0 0 4px; font-size: 15px; color: #0f766e; }
+  .card .sub { font-size: 12.5px; color: #86a09c; margin-bottom: 12px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 12px; color: #6d8a85; font-weight: 600; }
+  .field input, .field select, .field textarea {
+    padding: 9px 10px; border: 1px solid #dcebe8; border-radius: 9px;
+    font-size: 14px; font-family: inherit; outline: none; color: #1b2b28;
+    background: #fbfdfd; width: 100%; }
+  .field textarea { min-height: 68px; resize: vertical; }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: #6ec9bd; background: #fff; box-shadow: 0 0 0 3px #e6f6f3; }
+  .chk { display: flex; align-items: center; gap: 8px; font-size: 13.5px;
+    padding: 9px 10px; border: 1px solid #dcebe8; border-radius: 9px; background: #fbfdfd;
+    cursor: pointer; }
+  .chk input { width: 17px; height: 17px; accent-color: #0f766e; }
+
+  /* 按钮 */
+  .btn { border: none; border-radius: 10px; padding: 10px 16px; font-size: 14px;
+    font-weight: 700; font-family: inherit; cursor: pointer; }
+  .btn-primary { background: linear-gradient(135deg,#0f766e,#14b8a6); color: #fff;
+    box-shadow: 0 3px 10px rgba(15,118,110,.25); }
+  .btn-ghost { background: #f0f6f5; color: #2c5f58; border: 1px solid #dbe9e7; }
+  .btn-danger { background: #fdeaea; color: #c02b2b; border: 1px solid #f6d4d4; }
+  .btn-sm { padding: 6px 11px; font-size: 12.5px; border-radius: 8px; }
+  .btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  /* 商品卡片 */
+  .pcard { background: #fff; border: 1px solid #e2ecea; border-radius: 13px;
+    padding: 14px 15px; margin-bottom: 11px; cursor: pointer;
+    transition: .15s; box-shadow: 0 1px 2px rgba(15,80,70,.04); }
+  .pcard:hover { border-color: #a8d8d1; box-shadow: 0 3px 12px rgba(15,118,110,.10); }
+  .pcard .top { display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; }
+  .pcard .nm { font-weight: 700; font-size: 14.5px; }
+  .pcard .meta { font-size: 12px; color: #86a09c; margin-top: 3px; }
+  .pcard .bar { height: 5px; background: #eef4f3; border-radius: 99px;
+    margin-top: 11px; overflow: hidden; }
+  .pcard .bar i { display: block; height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg,#0f766e,#14b8a6); transition: width .3s; }
+
+  .badge { font-size: 11.5px; padding: 3px 10px; border-radius: 999px;
+    font-weight: 700; white-space: nowrap; flex: none; }
+  .b-active { background: #eef6f4; color: #2c6f66; }
+  .b-pass { background: #e6f7ef; color: #12925a; }
+  .b-block { background: #fdeaea; color: #c02b2b; }
+  .b-warn { background: #fff5e6; color: #b26a00; }
+
+  /* 抓取助手状态灯 */
+  .fstat { font-size: 11px; padding: 3px 8px; border-radius: 999px;
+    font-weight: 700; white-space: nowrap; flex: none; }
+  .fstat.on { background: #e6f7ef; color: #12925a; }
+  .fstat.off { background: #eef1f1; color: #98a6a4; }
+  /* 抓取结果列表 */
+  .ritem { border: 1px solid #e2ecea; border-radius: 10px; padding: 10px 12px;
+    margin-top: 8px; cursor: pointer; background: #fff; }
+  .ritem:hover { border-color: #a8d8d1; background: #f9fdfc; }
+  .ritem .rt { font-size: 13.5px; font-weight: 600; line-height: 1.45; }
+  .ritem .rm { font-size: 12px; color: #86a09c; margin-top: 3px; }
+  .linkbtn { display: block; border: 1px solid #dcebe8; border-radius: 9px;
+    padding: 9px 12px; margin-top: 7px; text-decoration: none; color: #0f766e;
+    font-size: 13px; font-weight: 600; background: #fbfdfd; }
+  .linkbtn:hover { background: #f0f8f7; }
+  .spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid #cfe6e2;
+    border-top-color: #0f766e; border-radius: 50%; animation: sp .7s linear infinite;
+    vertical-align: -2px; margin-right: 6px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+
+  /* 步骤条 */
+  .steps { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 12px; }
+  .steps button { flex: none; border: 1px solid #dcebe8; background: #fff;
+    color: #6d8a85; padding: 7px 12px; border-radius: 999px; font-size: 12.5px;
+    font-weight: 600; font-family: inherit; cursor: pointer; white-space: nowrap; }
+  .steps button.on { background: #0f766e; color: #fff; border-color: #0f766e; }
+  .steps button.done { background: #e6f7ef; color: #12925a; border-color: #c9ecdb; }
+
+  /* 结果 */
+  .hero { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    padding-bottom: 12px; border-bottom: 1px dashed #e2ecea; margin-bottom: 12px; }
+  .hero .big { font-size: 29px; font-weight: 800; letter-spacing: -.5px; }
+  .hero .pct { font-size: 14px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .up { color: #d92b2b; } .down { color: #12925a; }
+  .bg-up { background: #fdeaea; color: #d92b2b; }
+  .bg-down { background: #e6f7ef; color: #12925a; }
+  .kv { display: flex; justify-content: space-between; font-size: 13.5px; padding: 5px 0; }
+  .kv span:first-child { color: #6d8a85; }
+  .kv b { font-variant-numeric: tabular-nums; }
+  .bars { margin-top: 12px; }
+  .bar2 { margin-bottom: 8px; }
+  .bar2 .t { display: flex; justify-content: space-between; font-size: 12px;
+    color: #6d8a85; margin-bottom: 3px; }
+  .bar2 .track { height: 7px; background: #eef4f3; border-radius: 99px; overflow: hidden; }
+  .bar2 .fill { height: 100%; border-radius: 99px; }
+
+  .verdict { margin-top: 14px; padding: 11px 13px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 600; }
+  .v-pass { background: #e6f7ef; color: #0e7a4a; }
+  .v-warn { background: #fff5e6; color: #a35f00; }
+  .v-block { background: #fdeaea; color: #b02525; }
+
+  .reasons { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .reason { font-size: 13px; padding: 9px 12px; border-radius: 9px; line-height: 1.6; }
+  .r-block { background: #fdeaea; color: #a82020; }
+  .r-warn { background: #fff8ec; color: #96600a; }
+  .r-ok { background: #eef8f3; color: #166b45; }
+
+  .note { font-size: 12px; color: #86a09c; line-height: 1.7; }
+  .hidden { display: none !important; }
+
+  /* 供应商行 */
+  .sup { display: grid; grid-template-columns: 1.4fr .8fr .8fr 1.2fr auto; gap: 6px;
+    margin-bottom: 7px; align-items: center; }
+  @media (max-width: 620px) { .sup { grid-template-columns: 1fr 1fr; } }
+  .sup input { padding: 8px 9px; border: 1px solid #dcebe8; border-radius: 8px;
+    font-size: 13px; font-family: inherit; outline: none; width: 100%; background: #fbfdfd; }
+  .sup input:focus { border-color: #6ec9bd; }
+  .sup .x { background: #fdeaea; color: #c02b2b; border: 1px solid #f6d4d4;
+    border-radius: 8px; padding: 7px 10px; font-size: 13px; cursor: pointer; }
+  .best { background: #e6f7ef; border: 1px solid #c9ecdb; border-radius: 10px;
+    padding: 10px 12px; font-size: 13.5px; color: #0e7a4a; margin-top: 10px; font-weight: 600; }
+
+  /* AI 对话 */
+  #chat { display: flex; flex-direction: column; gap: 12px; min-height: 200px;
+    max-height: 52vh; overflow-y: auto; padding: 2px; }
+  .msg { display: flex; } .msg.user { justify-content: flex-end; }
+  .bubble { max-width: 84%; padding: 10px 14px; border-radius: 13px;
+    font-size: 14px; line-height: 1.65; word-break: break-word; }
+  .msg.user .bubble { background: linear-gradient(135deg,#0f766e,#14b8a6); color: #fff;
+    border-bottom-right-radius: 4px; }
+  .msg.agent .bubble { background: #f7fbfa; border: 1px solid #e2ecea;
+    border-bottom-left-radius: 4px; }
+  .bubble code { background: #e9f3f1; color: #0f766e; padding: 1px 5px;
+    border-radius: 5px; font-family: Consolas, monospace; font-size: 12.5px; }
+  .bubble pre { background: #0f2723; color: #d6f2ec; padding: 10px 12px;
+    border-radius: 9px; overflow-x: auto; font-size: 12.5px; margin: 6px 0 0;
+    font-family: Consolas, monospace; }
+  .trace { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 11px; background: #eef6f4; color: #2c6f66; border: 1px solid #d8ebe8;
+    padding: 3px 9px; border-radius: 999px; font-weight: 600; }
+  .inputrow { display: flex; gap: 8px; margin-top: 12px; }
+  .inputrow textarea { flex: 1; resize: none; height: 46px; padding: 12px 13px;
+    border: 1px solid #dcebe8; border-radius: 11px; font-family: inherit; font-size: 14px;
+    outline: none; color: #1b2b28; background: #fbfdfd; }
+  .quick { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 10px; }
+  .quick button { background: #f2f8f7; border: 1px solid #e0edea; color: #3d6b64;
+    padding: 5px 11px; border-radius: 999px; font-size: 12px; font-family: inherit; cursor: pointer; }
+
+  /* 抽屉 */
+  .mask { position: fixed; inset: 0; background: rgba(15,50,45,.32); opacity: 0;
+    pointer-events: none; transition: opacity .25s; z-index: 40; }
+  .mask.open { opacity: 1; pointer-events: auto; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: 400px;
+    max-width: 94vw; background: #fff; z-index: 50; padding: 18px;
+    box-shadow: -8px 0 30px rgba(15,60,55,.15); overflow-y: auto;
+    transform: translateX(105%); transition: transform .25s ease;
+    display: flex; flex-direction: column; gap: 13px; }
+  .drawer.open { transform: translateX(0); }
+  .drawer h3 { margin: 0; font-size: 16px; display: flex; justify-content: space-between;
+    align-items: center; }
+  .drawer .close { background: #f0f6f5; border: 1px solid #dbe9e7; color: #2c5f58;
+    border-radius: 8px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; }
+  .drawer label { font-size: 12.5px; font-weight: 600; color: #6d8a85; }
+  .drawer input { padding: 9px 11px; border: 1px solid #dcebe8; border-radius: 9px;
+    font-size: 13.5px; font-family: inherit; outline: none; color: #1b2b28; width: 100%; }
+  footer { text-align: center; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <div class="brand">
+      <div class="logo">📦</div>
+      <div>
+        <b>ymx</b>
+        <div class="bs">亚马逊选品闭环工作台</div>
+      </div>
+    </div>
+    <div class="hactions">
+      <span class="fstat off" id="fetchDot">抓取助手</span>
+      <button class="hbtn" id="btnCalc">快速算</button>
+      <button class="hbtn" id="btnAI">🤖 AI</button>
+      <button class="hbtn" id="btnSetting">⚙</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ 列表视图 ============ -->
+  <div id="viewList">
+    <div class="card" style="margin-top:16px">
+      <h3>选品流水线</h3>
+      <div class="sub">每个候选商品走完 9 个环节，全程留痕，风险自动拦截。</div>
+      <button class="btn btn-primary" id="btnNew">＋ 新建候选商品</button>
+    </div>
+    <div id="plist"></div>
+    <div class="note" id="emptyHint" style="text-align:center;padding:20px 0"></div>
+  </div>
+
+  <!-- ============ 向导视图 ============ -->
+  <div id="viewWizard" class="hidden">
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="justify-content:space-between">
+        <div style="min-width:0">
+          <div style="font-weight:800;font-size:16px" id="w_name">—</div>
+          <div class="note" id="w_meta"></div>
+        </div>
+        <span class="badge b-active" id="w_badge">进行中</span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn btn-ghost btn-sm" id="btnBack">← 返回列表</button>
+        <button class="btn btn-ghost btn-sm" id="btnRename">改名</button>
+        <button class="btn btn-danger btn-sm" id="btnDel">删除</button>
+      </div>
+    </div>
+
+    <div class="steps" id="stepNav"></div>
+    <div id="stepBody"></div>
+
+    <div class="row" style="justify-content:space-between;margin-bottom:20px">
+      <button class="btn btn-ghost" id="btnPrev">← 上一步</button>
+      <button class="btn btn-primary" id="btnNext">下一步 →</button>
+    </div>
+  </div>
+
+  <footer class="note">
+    数据只存在你自己的浏览器里（localStorage），不会上传到任何服务器。
+  </footer>
+</div>
+
+<div class="mask" id="mask"></div>
+
+<!-- 设置 -->
+<aside class="drawer" id="drSetting">
+  <h3>⚙ 设置 <button class="close" data-close>关闭</button></h3>
+  <div class="field"><label>API 地址（Base URL）</label>
+    <input id="f_base" placeholder="https://api.deepseek.com"></div>
+  <div class="field"><label>模型名（Model）</label>
+    <input id="f_model" placeholder="deepseek-chat"></div>
+  <div class="field"><label>API Key</label>
+    <input id="f_key" type="password" placeholder="粘贴你的 API Key"></div>
+  <button class="btn btn-primary" id="btnSave">保存</button>
+  <div class="note">推荐 <b>DeepSeek</b>：platform.deepseek.com 注册 → API Keys → 复制粘贴。
+    充 10 块够用很久。<br><br><b>不填 Key 也能用</b>：整条流水线的记录、打分、
+    风险拦截、利润核算都是本地算的，AI 只是帮你分析和写话术。</div>
+</aside>
+
+<!-- AI -->
+<aside class="drawer" id="drAI">
+  <h3>🤖 ymx AI <button class="close" data-close>关闭</button></h3>
+  <div class="note" id="aiCtx"></div>
+  <div class="quick" id="quick"></div>
+  <div id="chat"></div>
+  <div class="inputrow">
+    <textarea id="input" placeholder="比如：这个商品能跟卖吗？帮我算算利润。"></textarea>
+    <button class="btn btn-primary" id="btnSend">发送</button>
+  </div>
+  <div class="note" id="aiHint"></div>
+</aside>
+
+<!-- 快速算 -->
+<aside class="drawer" id="drCalc">
+  <h3>🧮 快速算利润 <button class="close" data-close>关闭</button></h3>
+  <div class="grid">
+    <div class="field"><label>采购价（¥/件）</label><input id="q_purchase" type="number" step="0.01" value="30"></div>
+    <div class="field"><label>国内运费（¥/件）</label><input id="q_domestic" type="number" step="0.01" value="3"></div>
+    <div class="field"><label>头程运费（¥/kg）</label><input id="q_firstleg" type="number" step="0.1" value="45"></div>
+    <div class="field"><label>含包装重量（g）</label><input id="q_weight" type="number" step="1" value="300"></div>
+    <div class="field"><label>亚马逊售价（$）</label><input id="q_price" type="number" step="0.01" value="19.99"></div>
+    <div class="field"><label>汇率（¥/$）</label><input id="q_rate" type="number" step="0.01" value="7.2"></div>
+    <div class="field"><label>亚马逊佣金（%）</label><input id="q_commission" type="number" step="0.1" value="15"></div>
+    <div class="field"><label>FBA 配送费（$）</label><input id="q_fba" type="number" step="0.01" value="4.75"></div>
+    <div class="field"><label>其他成本（%售价）</label><input id="q_other" type="number" step="0.1" value="10"></div>
+  </div>
+  <div class="card" style="margin:6px 0 0">
+    <div class="hero">
+      <span class="big" id="q_profit">—</span>
+      <span class="pct" id="q_margin">—</span>
+    </div>
+    <div class="kv"><span>售价折合</span><b id="q_revenue">—</b></div>
+    <div class="kv"><span>总成本</span><b id="q_cost">—</b></div>
+    <div class="kv"><span>盈亏平衡售价</span><b id="q_be">—</b></div>
+    <div class="verdict" id="q_verdict">—</div>
+  </div>
+</aside>
+
+<script>
+/* ==================================================================
+   0. 基础工具
+   ================================================================== */
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+  });
+}
+function num(v, d) { var n = parseFloat(v); return isNaN(n) ? (d || 0) : n; }
+function money(v) { return '¥' + Number(v).toFixed(2); }
+
+/* ==================================================================
+   1. 数据层（localStorage）
+   ================================================================== */
+var DB_KEY = 'suanpan_db_v2';
+var CFG_KEY = 'suanpan_cfg_v1';
+var DB = { products: [], curId: null, step: 0 };
+
+function loadDB() {
+  try {
+    var raw = localStorage.getItem(DB_KEY);
+    if (raw) DB = JSON.parse(raw);
+  } catch (e) {}
+  if (!DB.products) DB.products = [];
+  if (typeof DB.step !== 'number') DB.step = 0;
+}
+function saveDB() { localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+function cur() {
+  for (var i = 0; i < DB.products.length; i++)
+    if (DB.products[i].id === DB.curId) return DB.products[i];
+  return null;
+}
+function getCfg() { try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch (e) { return {}; } }
+function setCfg(c) { localStorage.setItem(CFG_KEY, JSON.stringify(c)); }
+function cfgReady() { var c = getCfg(); return !!(c.base_url && c.model && c.api_key); }
+
+/* ==================================================================
+   1.5 本地抓取助手（fetcher.py）连接
+   ================================================================== */
+var FETCHER = 'http://127.0.0.1:8771';
+var fetcherOk = false;
+
+async function fetcherGet(path, ms) {
+  var ctl = new AbortController();
+  var timer = setTimeout(function () { ctl.abort(); }, ms || 40000);
+  try {
+    var r = await fetch(FETCHER + path, { signal: ctl.signal });
+    clearTimeout(timer);
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
+
+async function checkFetcher() {
+  var el = $('fetchDot');
+  try {
+    var ctl = new AbortController();
+    var timer = setTimeout(function () { ctl.abort(); }, 2000);
+    var r = await fetch(FETCHER + '/ping', { signal: ctl.signal });
+    clearTimeout(timer);
+    var d = await r.json();
+    fetcherOk = !!d.ok;
+  } catch (e) { fetcherOk = false; }
+  if (el) {
+    el.className = 'fstat ' + (fetcherOk ? 'on' : 'off');
+    el.textContent = fetcherOk ? '抓取助手：已连接' : '抓取助手：未启动';
+    el.title = fetcherOk ? '本地抓取助手在线，可以自动抓亚马逊'
+      : '双击「启动抓取助手.bat」即可开启自动抓取';
+  }
+  return fetcherOk;
+}
+
+/* 抓取助手不在线时的提示 */
+function needFetcher() {
+  return '⚠️ 抓取助手没启动。\n\n'
+    + '双击程序目录里的「启动抓取助手.bat」，然后刷新本页面即可自动抓取。\n\n'
+    + '（没启动也不影响手动填表——整条流水线照样能用。）';
+}
+
+function newProduct() {
+  return {
+    id: 'p' + Date.now(),
+    name: '', asin: '', source: '亚马逊', url: '', price: 0, category: '',
+    demand: { monthly: 0, bsr: 0, reviews: 0, rating: 0 },
+    patent: { checked: false, risk: 'unknown', note: '' },
+    transparency: { hasIt: false, note: '' },
+    brand: { registered: false, note: '' },
+    suppliers: [{ name: '', price: 0, moq: 0, note: '' }],
+    cost: { purchase: 30, domestic: 3, firstLegPerKg: 45, weightG: 300,
+            fbaFee: 4.75, commissionPct: 15, otherPct: 10, rate: 7.2, price: 19.99 },
+    created: Date.now()
+  };
+}
+
+/* ==================================================================
+   2. 业务逻辑：打分 / 比价 / 利润 / 风控
+   ================================================================== */
+function scoreDemand(d) {
+  d = d || {};
+  var s = 0, notes = [];
+  var m = num(d.monthly);
+  if (m >= 300) { s += 40; notes.push('月销 ' + m + ' 件，需求充足'); }
+  else if (m >= 100) { s += 28; notes.push('月销 ' + m + ' 件，需求一般'); }
+  else if (m >= 30) { s += 15; notes.push('月销 ' + m + ' 件，需求偏弱'); }
+  else { s += 5; notes.push('月销 ' + m + ' 件，需求太低，慎入'); }
+
+  var rv = num(d.reviews);
+  if (rv === 0) { s += 25; notes.push('还没有评论（新 listing，机会大）'); }
+  else if (rv < 50) { s += 22; notes.push('评论 ' + rv + ' 条，竞争小'); }
+  else if (rv < 300) { s += 14; notes.push('评论 ' + rv + ' 条，竞争中等'); }
+  else if (rv < 1000) { s += 6; notes.push('评论 ' + rv + ' 条，竞争较大'); }
+  else { notes.push('评论 ' + rv + ' 条，头部垄断严重'); }
+
+  var rt = num(d.rating);
+  if (rt > 0) {
+    if (rt < 4.0) { s += 20; notes.push('评分 ' + rt + '，产品有明显痛点，有改进空间'); }
+    else if (rt < 4.5) { s += 12; notes.push('评分 ' + rt + '，中规中矩'); }
+    else { s += 5; notes.push('评分 ' + rt + '，已经很好，难抢'); }
+  } else { s += 10; }
+
+  var b = num(d.bsr);
+  if (b > 0) {
+    if (b <= 5000) { s += 15; notes.push('BSR ' + b + '，排名靠前，卖得动'); }
+    else if (b <= 30000) { s += 8; notes.push('BSR ' + b + '，排名中等'); }
+    else { s += 2; notes.push('BSR ' + b + '，排名靠后'); }
+  } else { s += 8; }
+
+  s = Math.min(100, s);
+  return { score: s, notes: notes };
+}
+
+function pickSupplier(list) {
+  var valid = (list || []).filter(function (x) { return x.name && num(x.price) > 0; });
+  if (!valid.length) return null;
+  var minP = Math.min.apply(null, valid.map(function (x) { return num(x.price); }));
+  valid.forEach(function (x) {
+    var priceScore = minP / num(x.price) * 70;
+    var moq = num(x.moq);
+    var moqScore = 30 * (1 - Math.min(moq, 1000) / 1000);
+    x._score = priceScore + moqScore;
+  });
+  var sorted = valid.slice().sort(function (a, b) { return b._score - a._score; });
+  return sorted[0];
+}
+
+function computeCost(p) {
+  var c = p.cost || {};
+  var rate = num(c.rate, 7.2);
+  var revenue = num(c.price) * rate;
+  var commission = revenue * num(c.commissionPct, 15) / 100;
+  var fba = num(c.fbaFee) * rate;
+  var firstLeg = num(c.weightG) / 1000 * num(c.firstLegPerKg);
+  var other = revenue * num(c.otherPct, 10) / 100;
+  var base = num(c.purchase) + num(c.domestic) + firstLeg;
+  var cost = base + commission + fba + other;
+  var profit = revenue - cost;
+  var margin = revenue > 0 ? profit / revenue * 100 : 0;
+  var varRate = (num(c.commissionPct, 15) + num(c.otherPct, 10)) / 100;
+  var bePrice = (1 - varRate) > 0 ? (base + fba) / (rate * (1 - varRate)) : 0;
+  return { revenue: revenue, commission: commission, fba: fba, firstLeg: firstLeg,
+    other: other, base: base, cost: cost, profit: profit, margin: margin, bePrice: bePrice };
+}
+
+function evaluate(p) {
+  var reasons = [];
+  if (p.transparency && p.transparency.hasIt)
+    reasons.push({ t: 'block', m: '该商品已加入亚马逊透明计划（Transparency），跟卖必失败，直接淘汰。' });
+  if (p.brand && p.brand.registered)
+    reasons.push({ t: 'block', m: '该商品有品牌备案（Brand Registry），跟卖属于侵权，会封店。' });
+  var risk = (p.patent && p.patent.risk) || 'unknown';
+  if (risk === 'high') reasons.push({ t: 'block', m: '专利风险【高】，跟卖可能侵权。' });
+  if (risk === 'medium') reasons.push({ t: 'warn', m: '专利风险【中】，建议找专业代理再确认一遍。' });
+  if (!(p.patent && p.patent.checked)) reasons.push({ t: 'warn', m: '还没查专利。查完再决定，别跳过。' });
+
+  var ds = scoreDemand(p.demand);
+  if (ds.score < 40) reasons.push({ t: 'warn', m: '需求评分只有 ' + ds.score + ' 分，可能卖不动。' });
+  if (ds.score >= 60) reasons.push({ t: 'ok', m: '需求评分 ' + ds.score + ' 分，市场可以。' });
+
+  var blocked = reasons.some(function (r) { return r.t === 'block'; });
+  var warned = reasons.some(function (r) { return r.t === 'warn'; });
+  return { eligible: !blocked, level: blocked ? 'block' : (warned ? 'warn' : 'pass'),
+    reasons: reasons, demand: ds };
+}
+
+function buildReport(p) {
+  var ev = evaluate(p);
+  var ds = ev.demand;
+  var best = pickSupplier(p.suppliers);
+  var pc = computeCost(p);
+  var L = [];
+  L.push('# 选品决策报告 · ' + (p.name || '未命名'));
+  L.push('');
+  L.push('- ASIN：' + (p.asin || '—'));
+  L.push('- 来源：' + (p.source || '—'));
+  L.push('- 类目：' + (p.category || '—'));
+  L.push('- 生成时间：' + new Date().toLocaleString('zh-CN'));
+  L.push('');
+  L.push('## 一、需求初筛（评分 ' + ds.score + '/100）');
+  ds.notes.forEach(function (n) { L.push('- ' + n); });
+  L.push('');
+  L.push('## 二、合规风险');
+  L.push('- 透明计划：' + (p.transparency.hasIt ? '⚠️ 已加入 → 不可跟卖' : '无'));
+  L.push('- 品牌备案：' + (p.brand.registered ? '⚠️ 有 → 不可跟卖' : '无'));
+  L.push('- 专利风险：' + ({ unknown: '未查', low: '低', medium: '中', high: '高' }[p.patent.risk] || '未查'));
+  if (p.patent.note) L.push('- 专利备注：' + p.patent.note);
+  L.push('');
+  L.push('## 三、跟卖决策');
+  L.push(ev.eligible ? '✅ **可以跟卖**' : '❌ **不可跟卖**');
+  ev.reasons.forEach(function (r) {
+    L.push('- ' + (r.t === 'block' ? '❌ ' : r.t === 'warn' ? '⚠️ ' : '✅ ') + r.m);
+  });
+  L.push('');
+  L.push('## 四、1688 供应商对比');
+  (p.suppliers || []).filter(function (s) { return s.name; }).forEach(function (s) {
+    L.push('- ' + s.name + '：¥' + num(s.price) + ' / 起订 ' + num(s.moq) + ' 件' + (s.note ? '（' + s.note + '）' : ''));
+  });
+  if (best) L.push('- **推荐：' + best.name + '**（综合最优）');
+  L.push('');
+  L.push('## 五、利润核算');
+  L.push('- 售价：$' + num(p.cost.price) + '（折合 ' + money(pc.revenue) + '）');
+  L.push('- 总成本：' + money(pc.cost));
+  L.push('- 单件利润：' + money(pc.profit) + '（利润率 ' + pc.margin.toFixed(1) + '%）');
+  L.push('- 盈亏平衡售价：$' + pc.bePrice.toFixed(2));
+  L.push('');
+  L.push('## 六、执行清单');
+  if (!ev.eligible) {
+    L.push('1. ❌ 本项目已淘汰，不进入执行环节。');
+  } else {
+    L.push('1. 确认供应商：' + (best ? best.name : '待定') + '，谈价目标 ¥' + (best ? num(best.price) : '—'));
+    L.push('2. 索取样品，确认质量与包装重量（当前按 ' + num(p.cost.weightG) + 'g 计算）');
+    L.push('3. 与供应商谈：交期、包装定制、破损补发、发票');
+    L.push('4. 下单（人工确认，务必核对金额）');
+    L.push('5. 头程发货 → 入 FBA 仓');
+    L.push('6. 在卖家后台跟卖上架（人工操作，核对 ASIN 与售价）');
+    L.push('7. 上架后盯：' + '售价不低于 $' + pc.bePrice.toFixed(2) + ' 才不亏');
+  }
+  return L.join('\n');
+}
+
+/* ==================================================================
+   3. 视图：列表
+   ================================================================== */
+var STEPS = [
+  { id: 'basic',        name: '① 候选登记',  sub: '商品基本信息' },
+  { id: 'demand',       name: '② 需求初筛',  sub: '销量 / BSR / 评论 → 值不值得跟' },
+  { id: 'patent',       name: '③ 专利风险',  sub: '查专利，判断侵权风险' },
+  { id: 'transparency', name: '④ 透明计划',  sub: '加入透明计划的商品无法跟卖' },
+  { id: 'brand',        name: '⑤ 品牌授权',  sub: '有品牌备案的不能跟卖' },
+  { id: 'decision',     name: '⑥ 跟卖决策',  sub: '自动汇总前 5 步，给出结论' },
+  { id: 'supplier',     name: '⑦ 1688 比价', sub: '多家供应商对比，选最优' },
+  { id: 'profit',       name: '⑧ 利润核算',  sub: '算清楚到底能不能赚' },
+  { id: 'report',       name: '⑨ 决策报告',  sub: '汇总输出执行清单' }
+];
+
+function stepDone(p, i) {
+  switch (STEPS[i].id) {
+    case 'basic': return !!p.name;
+    case 'demand': return num(p.demand.monthly) > 0 || num(p.demand.reviews) > 0;
+    case 'patent': return !!p.patent.checked;
+    case 'transparency': return true;
+    case 'brand': return true;
+    case 'decision': return true;
+    case 'supplier': return !!(pickSupplier(p.suppliers));
+    case 'profit': return num(p.cost.price) > 0;
+    case 'report': return false;
+  }
+  return false;
+}
+function progress(p) {
+  var n = 0;
+  for (var i = 0; i < STEPS.length - 1; i++) if (stepDone(p, i)) n++;
+  return n;
+}
+function statusOf(p) {
+  var ev = evaluate(p);
+  if (!ev.eligible) return { cls: 'b-block', txt: '已淘汰' };
+  if (progress(p) >= 8) return { cls: 'b-pass', txt: '可执行' };
+  if (ev.level === 'warn') return { cls: 'b-warn', txt: '有风险' };
+  return { cls: 'b-active', txt: '进行中' };
+}
+
+function renderList() {
+  var box = $('plist');
+  if (!DB.products.length) {
+    box.innerHTML = '';
+    $('emptyHint').textContent = '还没有候选商品。点上面的按钮建一个，走一遍流程你就懂了。';
+    return;
+  }
+  $('emptyHint').textContent = '';
+  box.innerHTML = DB.products.map(function (p) {
+    var st = statusOf(p);
+    var pg = progress(p);
+    return '<div class="pcard" data-id="' + p.id + '">'
+      + '<div class="top"><div style="min-width:0">'
+      + '<div class="nm">' + esc(p.name || '未命名商品') + '</div>'
+      + '<div class="meta">' + esc(p.asin || '无 ASIN') + ' · ' + esc(p.source || '') + '</div>'
+      + '</div><span class="badge ' + st.cls + '">' + st.txt + '</span></div>'
+      + '<div class="bar"><i style="width:' + (pg / 8 * 100).toFixed(0) + '%"></i></div>'
+      + '<div class="meta" style="margin-top:6px">进度 ' + pg + '/8 环节</div>'
+      + '</div>';
+  }).join('');
+  Array.prototype.forEach.call(box.querySelectorAll('.pcard'), function (el) {
+    el.onclick = function () { openProduct(el.getAttribute('data-id')); };
+  });
+}
+
+/* ==================================================================
+   4. 视图：向导
+   ================================================================== */
+function openProduct(id) {
+  DB.curId = id; DB.step = 0; saveDB();
+  $('viewList').classList.add('hidden');
+  $('viewWizard').classList.remove('hidden');
+  renderWizard();
+  window.scrollTo(0, 0);
+}
+function backToList() {
+  $('viewWizard').classList.add('hidden');
+  $('viewList').classList.remove('hidden');
+  renderList();
+  window.scrollTo(0, 0);
+}
+
+function renderWizard() {
+  var p = cur();
+  if (!p) { backToList(); return; }
+  var st = statusOf(p);
+  $('w_name').textContent = p.name || '未命名商品';
+  $('w_meta').textContent = [p.asin, p.source, p.category].filter(Boolean).join(' · ') || '还没填基本信息';
+  var b = $('w_badge');
+  b.className = 'badge ' + st.cls; b.textContent = st.txt;
+
+  $('stepNav').innerHTML = STEPS.map(function (s, i) {
+    var cls = i === DB.step ? 'on' : (stepDone(p, i) ? 'done' : '');
+    return '<button class="' + cls + '" data-step="' + i + '">' + s.name + '</button>';
+  }).join('');
+  Array.prototype.forEach.call($('stepNav').querySelectorAll('button'), function (el) {
+    el.onclick = function () { DB.step = parseInt(el.getAttribute('data-step'), 10); saveDB(); renderWizard(); };
+  });
+
+  $('stepBody').innerHTML = renderStep(p, DB.step);
+  bindStep(p, DB.step);
+
+  $('btnPrev').disabled = DB.step === 0;
+  $('btnNext').disabled = DB.step === STEPS.length - 1;
+}
+
+function renderStep(p, i) {
+  var id = STEPS[i].id;
+  var head = '<div class="card"><h3>' + STEPS[i].name + '</h3><div class="sub">' + STEPS[i].sub + '</div>';
+
+  if (id === 'basic') {
+    return head
+      + '<div class="card" style="margin:0 0 14px;background:#f7fbfa;border-color:#d8ebe8">'
+      + '<h3>🔍 从亚马逊自动抓取</h3>'
+      + '<div class="sub">输入关键词，直接搜出商品，点一下就自动填进来。</div>'
+      + '<div class="row"><input id="q_kw" placeholder="英文关键词，如 silicone water cup" '
+      + 'style="flex:1;min-width:180px;padding:9px 11px;border:1px solid #dcebe8;border-radius:9px;font-family:inherit;font-size:14px;outline:none">'
+      + '<button class="btn btn-primary btn-sm" id="btnSearch">搜索</button></div>'
+      + '<div id="q_result"></div></div>'
+      + '<div class="grid">'
+      + fld('b_name', '商品名称', 'text', p.name, '比如：折叠硅胶水杯')
+      + fld('b_asin', 'ASIN', 'text', p.asin, 'B0XXXXXXXX')
+      + fld('b_source', '来源平台', 'text', p.source, '亚马逊')
+      + fld('b_category', '类目', 'text', p.category, '比如：Kitchen')
+      + fld('b_price', '当前售价（$）', 'number', p.price, '19.99')
+      + fld('b_url', '商品链接', 'text', p.url, 'https://...')
+      + '</div>'
+      + '<div class="note" style="margin-top:10px">ASIN 就是亚马逊商品页地址里 /dp/ 后面那串。'
+      + '也可以直接在上面搜索，点结果自动填。</div>'
+      + '</div>';
+  }
+
+  if (id === 'demand') {
+    var ds = scoreDemand(p.demand);
+    var col = ds.score >= 60 ? 'v-pass' : (ds.score >= 40 ? 'v-warn' : 'v-block');
+    return head
+      + '<div class="grid">'
+      + fld('d_monthly', '月销量（件）', 'number', p.demand.monthly, '300')
+      + fld('d_bsr', 'BSR 排名', 'number', p.demand.bsr, '12000')
+      + fld('d_reviews', '评论数', 'number', p.demand.reviews, '120')
+      + fld('d_rating', '评分', 'number', p.demand.rating, '4.3')
+      + '</div>'
+      + '<div class="verdict ' + col + '">需求评分：<b>' + ds.score + ' / 100</b>　'
+      + (ds.score >= 60 ? '市场可以，值得继续' : ds.score >= 40 ? '一般，谨慎' : '偏低，建议换品')
+      + '</div>'
+      + '<div class="reasons">' + ds.notes.map(function (n) {
+          return '<div class="reason r-ok">• ' + esc(n) + '</div>'; }).join('') + '</div>'
+      + '<div class="row" style="margin-top:12px">'
+      + '<button class="btn btn-primary btn-sm" id="btnFetchAsin">🔄 按 ASIN 自动抓取</button>'
+      + '<span class="note" id="fetchMsg"></span></div>'
+      + '<div class="note" style="margin-top:12px">自动抓取能拿到：评论数、评分、BSR、品牌、'
+      + '<b>是否加入透明计划</b>。真实月销量亚马逊不公开，那个得靠卖家精灵 / Keepa 这类付费工具估。</div>'
+      + '</div>';
+  }
+
+  if (id === 'patent') {
+    return head
+      + '<div class="chk" style="margin-bottom:12px"><input type="checkbox" id="p_checked"'
+      + (p.patent.checked ? ' checked' : '') + '><label for="p_checked">我已经查过专利了</label></div>'
+      + '<div class="field" style="margin-bottom:12px"><label>专利风险等级</label>'
+      + '<select id="p_risk">'
+      + opt('unknown', '未查 / 不确定', p.patent.risk)
+      + opt('low', '低 —— 没找到相关专利', p.patent.risk)
+      + opt('medium', '中 —— 有相似专利，需要进一步确认', p.patent.risk)
+      + opt('high', '高 —— 有明确专利，会侵权', p.patent.risk)
+      + '</select></div>'
+      + '<div class="field"><label>检索备注（查到了什么，粘这里）</label>'
+      + '<textarea id="p_note" placeholder="比如：在 Google Patents 搜到 2023 年一件外观专利 US Dxxxxxx，权利人 XXX">'
+      + esc(p.patent.note) + '</textarea></div>'
+      + '<div class="row" style="margin-top:12px">'
+      + '<button class="btn btn-primary btn-sm" id="btnPatentLinks">🔗 打开专利检索（官方库）</button></div>'
+      + '<div id="linkBox"></div>'
+      + '<div class="note" style="margin-top:12px">重点查 <b>Design（外观）专利</b>：'
+      + '搜商品核心词（如 silicone cup），看有没有长得像的外观专利。'
+      + '有相似外观专利 → 风险填「中」以上。查到什么粘到上面，AI 帮你判断。</div>'
+      + '</div>';
+  }
+
+  if (id === 'transparency') {
+    return head
+      + '<div class="chk" style="margin-bottom:12px"><input type="checkbox" id="t_has"'
+      + (p.transparency.hasIt ? ' checked' : '') + '><label for="t_has">该商品加入了亚马逊透明计划（Transparency）</label></div>'
+      + '<div class="field"><label>备注</label><textarea id="t_note" placeholder="比如：商品页有 Transparency 标识">'
+      + esc(p.transparency.note) + '</textarea></div>'
+      + '<div class="verdict ' + (p.transparency.hasIt ? 'v-block' : 'v-pass') + '">'
+      + (p.transparency.hasIt ? '❌ 加入透明计划 = 必须有透明码才能卖，跟卖必失败。直接淘汰。'
+        : '✅ 没加入透明计划，这一关通过。') + '</div>'
+      + '<div class="note" style="margin-top:12px">怎么看：商品详情页如果有「Transparency」相关标识，或者包装上要求贴透明码，就是加入了。</div>'
+      + '</div>';
+  }
+
+  if (id === 'brand') {
+    return head
+      + '<div class="chk" style="margin-bottom:12px"><input type="checkbox" id="br_reg"'
+      + (p.brand.registered ? ' checked' : '') + '><label for="br_reg">该商品有品牌备案（Brand Registry）</label></div>'
+      + '<div class="field"><label>备注</label><textarea id="br_note" placeholder="比如：品牌名 XXX，页面有 A+ 内容和品牌旗舰店">'
+      + esc(p.brand.note) + '</textarea></div>'
+      + '<div class="verdict ' + (p.brand.registered ? 'v-block' : 'v-pass') + '">'
+      + (p.brand.registered ? '❌ 有品牌备案 = 跟卖即侵权，会封店。直接淘汰。'
+        : '✅ 看起来没有品牌备案，这一关通过。') + '</div>'
+      + '<div class="row" style="margin-top:12px">'
+      + '<button class="btn btn-primary btn-sm" id="btnTmLinks">🔗 查美国商标（USPTO）</button></div>'
+      + '<div id="linkBox"></div>'
+      + '<div class="note" style="margin-top:12px">怎么看有没有品牌备案：页面有 A+ 图文、'
+      + '品牌旗舰店入口、或者品牌名后面带 ® 的，基本都有备案。'
+      + '搜到「LIVE」状态的注册商标，说明被保护，别跟卖。</div>'
+      + '</div>';
+  }
+
+  if (id === 'decision') {
+    var ev = evaluate(p);
+    var cls = ev.level === 'pass' ? 'v-pass' : (ev.level === 'warn' ? 'v-warn' : 'v-block');
+    return head
+      + '<div class="verdict ' + cls + '" style="font-size:16px">'
+      + (ev.eligible ? '✅ 结论：可以跟卖' : '❌ 结论：不可跟卖') + '</div>'
+      + '<div class="reasons">' + ev.reasons.map(function (r) {
+          var c = r.t === 'block' ? 'r-block' : (r.t === 'warn' ? 'r-warn' : 'r-ok');
+          var ic = r.t === 'block' ? '❌ ' : (r.t === 'warn' ? '⚠️ ' : '✅ ');
+          return '<div class="reason ' + c + '">' + ic + esc(r.m) + '</div>';
+        }).join('') + '</div>'
+      + '<div class="note" style="margin-top:12px">这一关是<b>自动</b>的——把你前 5 步填的东西综合起来判断。'
+      + '任意一条「❌」都会直接淘汰，不给后面机会。</div>'
+      + '</div>';
+  }
+
+  if (id === 'supplier') {
+    var best = pickSupplier(p.suppliers);
+    var rows = p.suppliers.map(function (s, idx) {
+      return '<div class="sup">'
+        + '<input data-si="' + idx + '" data-k="name" placeholder="供应商/店铺名" value="' + esc(s.name) + '">'
+        + '<input data-si="' + idx + '" data-k="price" type="number" step="0.01" placeholder="单价¥" value="' + (num(s.price) || '') + '">'
+        + '<input data-si="' + idx + '" data-k="moq" type="number" step="1" placeholder="起订量" value="' + (num(s.moq) || '') + '">'
+        + '<input data-si="' + idx + '" data-k="note" placeholder="备注" value="' + esc(s.note) + '">'
+        + '<button class="x" data-del="' + idx + '">删</button>'
+        + '</div>';
+    }).join('');
+    return head
+      + rows
+      + '<button class="btn btn-ghost btn-sm" id="btnAddSup">＋ 加一家供应商</button>'
+      + (best ? '<div class="best">🏆 推荐：' + esc(best.name) + '　单价 ¥' + num(best.price)
+          + '　起订 ' + num(best.moq) + ' 件<br><span style="font-weight:400">'
+          + '综合评分 ' + best._score.toFixed(1) + '（价格占 70 分，起订量占 30 分）</span></div>'
+        : '<div class="note" style="margin-top:10px">填上至少一家供应商的「名称 + 单价」，我帮你挑最优。</div>')
+      + '<div class="row" style="margin-top:12px">'
+      + '<button class="btn btn-primary btn-sm" id="btn1688">🔗 打开 1688 搜索货源</button></div>'
+      + '<div id="linkBox"></div>'
+      + '<div class="note" style="margin-top:12px">在 1688 搜商品名，找 3 家以上比价。'
+      + '1688 要登录才能看全、反爬也严，所以只能给你检索入口——'
+      + '报价请手动看，然后填进上面。</div>'
+      + '</div>';
+  }
+
+  if (id === 'profit') {
+    var c = p.cost;
+    var pc = computeCost(p);
+    var win = pc.profit >= 0;
+    return head
+      + '<div class="card" style="margin:0 0 14px;background:#f7fbfa;border-color:#d8ebe8">'
+      + '<h3>🚚 头程运费估算</h3>'
+      + '<div class="sub">按整批算：多少件、单件多重、每公斤多少钱。</div>'
+      + '<div class="grid">'
+      + '<div class="field"><label>件数</label><input id="fl_qty" type="number" step="1" placeholder="100"></div>'
+      + '<div class="field"><label>单件重量（g）</label><input id="fl_g" type="number" step="1" placeholder="300"></div>'
+      + '<div class="field"><label>头程单价（¥/kg）</label><input id="fl_ppk" type="number" step="1" placeholder="45"></div>'
+      + '</div>'
+      + '<div id="fl_out" class="note" style="margin-top:9px">填上面三项，自动算总运费和单件分摊。</div>'
+      + '<div class="row" style="margin-top:9px">'
+      + '<button class="btn btn-ghost btn-sm" id="fl_fill">↧ 把单件重量/单价填进下面的利润核算</button></div>'
+      + '</div>'
+      + '<div class="grid">'
+      + fld('c_purchase', '采购价（¥/件）', 'number', c.purchase)
+      + fld('c_domestic', '国内运费（¥/件）', 'number', c.domestic)
+      + fld('c_firstLegPerKg', '头程运费（¥/kg）', 'number', c.firstLegPerKg)
+      + fld('c_weightG', '含包装重量（g）', 'number', c.weightG)
+      + fld('c_price', '亚马逊售价（$）', 'number', c.price)
+      + fld('c_rate', '汇率（¥/$）', 'number', c.rate)
+      + fld('c_commissionPct', '亚马逊佣金（%）', 'number', c.commissionPct)
+      + fld('c_fbaFee', 'FBA 配送费（$）', 'number', c.fbaFee)
+      + fld('c_otherPct', '其他成本（%售价）', 'number', c.otherPct)
+      + '</div>'
+      + '<div style="margin-top:16px"><div class="hero">'
+      + '<span class="big ' + (win ? 'up' : 'down') + '">' + (win ? '+' : '') + money(pc.profit) + '</span>'
+      + '<span class="pct ' + (win ? 'bg-up' : 'bg-down') + '">' + pc.margin.toFixed(1) + '%</span>'
+      + '<span class="note">单件利润 / 利润率</span></div>'
+      + '<div class="kv"><span>售价折合</span><b>' + money(pc.revenue) + '</b></div>'
+      + '<div class="kv"><span>总成本</span><b>' + money(pc.cost) + '</b></div>'
+      + '<div class="kv"><span>盈亏平衡售价</span><b>$' + pc.bePrice.toFixed(2) + '</b></div>'
+      + '<div class="verdict ' + (pc.margin >= 20 ? 'v-pass' : pc.margin >= 0 ? 'v-warn' : 'v-block') + '">'
+      + (pc.margin >= 20 ? '✅ 利润率 ' + pc.margin.toFixed(1) + '%，高于 20% 安全线，值得做。'
+        : pc.margin >= 10 ? '⚠️ 利润率 ' + pc.margin.toFixed(1) + '%，偏薄，广告一超支就亏。'
+        : pc.margin >= 0 ? '🚨 利润率只有 ' + pc.margin.toFixed(1) + '%，不建议做。'
+        : '❌ 每件亏 ' + money(Math.abs(pc.profit)) + '，至少要卖到 $' + pc.bePrice.toFixed(2) + ' 才保本。')
+      + '</div></div></div>';
+  }
+
+  if (id === 'report') {
+    var rep = buildReport(p);
+    var ev2 = evaluate(p);
+    return head
+      + '<div class="verdict ' + (ev2.eligible ? 'v-pass' : 'v-block') + '">'
+      + (ev2.eligible ? '✅ 该项目通过风控，可以进入执行。' : '❌ 该项目未通过风控，建议放弃。') + '</div>'
+      + '<div class="row" style="margin:12px 0">'
+      + '<button class="btn btn-primary btn-sm" id="btnCopy">复制报告</button>'
+      + '<button class="btn btn-ghost btn-sm" id="btnDownload">下载 .md</button>'
+      + '</div>'
+      + '<pre style="background:#0f2723;color:#d6f2ec;padding:14px;border-radius:10px;'
+      + 'overflow-x:auto;font-size:12.5px;line-height:1.7;font-family:Consolas,monospace">'
+      + esc(rep) + '</pre></div>';
+  }
+
+  return head + '</div>';
+}
+
+function fld(id, label, type, val, ph) {
+  return '<div class="field"><label>' + label + '</label>'
+    + '<input id="' + id + '" type="' + type + '"'
+    + (type === 'number' ? ' step="0.01"' : '')
+    + ' value="' + esc(val === 0 ? '' : val) + '"'
+    + ' placeholder="' + esc(ph || '') + '"></div>';
+}
+function opt(v, t, curV) {
+  return '<option value="' + v + '"' + (curV === v ? ' selected' : '') + '>' + t + '</option>';
+}
+
+/* 绑定当前步骤的输入 */
+function bindStep(p, i) {
+  var id = STEPS[i].id;
+  function on(el, ev, fn) { if (el) el.addEventListener(ev, fn); }
+  function live(el, fn) { if (el) el.addEventListener('input', fn); }
+
+  if (id === 'basic') {
+    live($('b_name'), function () { p.name = this.value; saveDB(); });
+    live($('b_asin'), function () { p.asin = this.value; saveDB(); });
+    live($('b_source'), function () { p.source = this.value; saveDB(); });
+    live($('b_category'), function () { p.category = this.value; saveDB(); });
+    live($('b_price'), function () { p.price = num(this.value); saveDB(); });
+    live($('b_url'), function () { p.url = this.value; saveDB(); });
+  }
+  if (id === 'demand') {
+    live($('d_monthly'), function () { p.demand.monthly = num(this.value); saveDB(); });
+    live($('d_bsr'), function () { p.demand.bsr = num(this.value); saveDB(); });
+    live($('d_reviews'), function () { p.demand.reviews = num(this.value); saveDB(); });
+    live($('d_rating'), function () { p.demand.rating = num(this.value); saveDB(); });
+    var t;
+    ['d_monthly', 'd_bsr', 'd_reviews', 'd_rating'].forEach(function (x) {
+      on($(x), 'input', function () { clearTimeout(t); t = setTimeout(function () { renderWizard(); }, 700); });
+    });
+  }
+  if (id === 'patent') {
+    on($('p_checked'), 'change', function () { p.patent.checked = this.checked; saveDB(); });
+    on($('p_risk'), 'change', function () { p.patent.risk = this.value; saveDB(); });
+    live($('p_note'), function () { p.patent.note = this.value; saveDB(); });
+  }
+  if (id === 'transparency') {
+    on($('t_has'), 'change', function () { p.transparency.hasIt = this.checked; saveDB(); renderWizard(); });
+    live($('t_note'), function () { p.transparency.note = this.value; saveDB(); });
+  }
+  if (id === 'brand') {
+    on($('br_reg'), 'change', function () { p.brand.registered = this.checked; saveDB(); renderWizard(); });
+    live($('br_note'), function () { p.brand.note = this.value; saveDB(); });
+  }
+  if (id === 'supplier') {
+    Array.prototype.forEach.call(document.querySelectorAll('#stepBody .sup input'), function (el) {
+      live(el, function () {
+        var idx = parseInt(this.getAttribute('data-si'), 10);
+        var k = this.getAttribute('data-k');
+        p.suppliers[idx][k] = (k === 'price' || k === 'moq') ? num(this.value) : this.value;
+        saveDB();
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#stepBody .sup .x'), function (el) {
+      on(el, 'click', function () {
+        var idx = parseInt(this.getAttribute('data-del'), 10);
+        p.suppliers.splice(idx, 1);
+        if (!p.suppliers.length) p.suppliers.push({ name: '', price: 0, moq: 0, note: '' });
+        saveDB(); renderWizard();
+      });
+    });
+    on($('btnAddSup'), 'click', function () {
+      p.suppliers.push({ name: '', price: 0, moq: 0, note: '' });
+      saveDB(); renderWizard();
+    });
+  }
+  if (id === 'profit') {
+    ['purchase','domestic','firstLegPerKg','weightG','price','rate','commissionPct','fbaFee','otherPct']
+      .forEach(function (k) {
+        var el = $('c_' + k);
+        if (!el) return;
+        live(el, function () { p.cost[k] = num(this.value); saveDB(); });
+      });
+    var t2;
+    ['purchase','domestic','firstLegPerKg','weightG','price','rate','commissionPct','fbaFee','otherPct']
+      .forEach(function (k) {
+        on($('c_' + k), 'input', function () { clearTimeout(t2); t2 = setTimeout(function () { renderWizard(); }, 600); });
+      });
+    // 头程运费估算小工具
+    function flRender() {
+      var qty = num($('fl_qty').value, 0), g = num($('fl_g').value, 0), ppk = num($('fl_ppk').value, 45);
+      var out = $('fl_out');
+      if (!qty || !g) { out.textContent = '填上面三项，自动算总运费和单件分摊。'; return; }
+      var totalKg = qty * g / 1000, total = totalKg * ppk;
+      out.innerHTML = '总重 <b>' + totalKg.toFixed(2) + ' kg</b> → 总运费 <b>' + money(total)
+        + '</b>，单件分摊 <b>' + money(total / qty) + '</b>';
+    }
+    ['fl_qty', 'fl_g', 'fl_ppk'].forEach(function (x) { on($(x), 'input', flRender); });
+    flRender();
+    on($('fl_fill'), 'click', function () {
+      var g = num($('fl_g').value, 0), ppk = num($('fl_ppk').value, 45);
+      if (!g) { alert('先填单件重量'); return; }
+      p.cost.weightG = g; p.cost.firstLegPerKg = ppk;
+      saveDB(); renderWizard();
+    });
+  }
+  if (id === 'report') {
+    on($('btnCopy'), 'click', function () {
+      var txt = buildReport(p);
+      navigator.clipboard.writeText(txt).then(function () { alert('报告已复制'); },
+        function () { alert('复制失败，请手动选中'); });
+    });
+    on($('btnDownload'), 'click', function () {
+      var txt = buildReport(p);
+      var blob = new Blob([txt], { type: 'text/markdown;charset=utf-8' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (p.name || '选品报告') + '.md';
+      a.click();
+    });
+  }
+
+  // ---- 抓取助手相关按钮 ----
+  if (id === 'basic') {
+    on($('btnSearch'), 'click', function () { doSearch(p); });
+    var kw = $('q_kw');
+    if (kw) kw.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); doSearch(p); }
+    });
+  }
+  if (id === 'demand') { on($('btnFetchAsin'), 'click', function () { doFetchAsin(p); }); }
+  if (id === 'patent') { on($('btnPatentLinks'), 'click', function () { showLinks('patent', p); }); }
+  if (id === 'brand') { on($('btnTmLinks'), 'click', function () { showLinks('trademark', p); }); }
+  if (id === 'supplier') { on($('btn1688'), 'click', function () { showLinks('1688', p); }); }
+}
+
+/* ---------- 抓取动作 ---------- */
+async function doSearch(p) {
+  var box = $('q_result');
+  var kw = ($('q_kw').value || '').trim();
+  if (!kw) { box.innerHTML = '<div class="note" style="margin-top:8px">先输入关键词。</div>'; return; }
+  if (!(await checkFetcher())) { alert(needFetcher()); return; }
+
+  box.innerHTML = '<div class="note" style="margin-top:10px"><span class="spinner"></span>正在抓亚马逊，大约 5~15 秒…</div>';
+  try {
+    var d = await fetcherGet('/api/amazon/search?q=' + encodeURIComponent(kw));
+    if (!d.ok) { box.innerHTML = '<div class="verdict v-warn" style="margin-top:10px">抓取失败：' + esc(d.error) + '</div>'; return; }
+    if (!d.items.length) { box.innerHTML = '<div class="note" style="margin-top:10px">没搜到结果，换个英文关键词试试。</div>'; return; }
+    box.innerHTML = '<div class="note" style="margin-top:10px">抓到 ' + d.count + ' 条，点一条自动填入：</div>'
+      + d.items.map(function (it, i) {
+        return '<div class="ritem" data-i="' + i + '">'
+          + '<div class="rt">' + esc(it.title || '(无标题)') + '</div>'
+          + '<div class="rm">' + esc(it.asin)
+          + (it.price ? ' · $' + esc(it.price) + '（页面价，可能含进口费）' : '')
+          + (it.rating ? ' · ' + esc(it.rating) + ' 星' : '')
+          + (it.reviews ? ' · ' + esc(it.reviews) + ' 评' : '')
+          + (it.sponsored ? ' · 广告位' : '') + '</div></div>';
+      }).join('');
+    Array.prototype.forEach.call(box.querySelectorAll('.ritem'), function (el) {
+      el.onclick = function () {
+        var it = d.items[parseInt(el.getAttribute('data-i'), 10)];
+        p.name = it.title;
+        p.asin = it.asin;
+        p.url = it.url;
+        p.price = it.price ? parseFloat(it.price) : p.price;
+        if (it.reviews) p.demand.reviews = parseInt(it.reviews, 10) || 0;
+        if (it.rating) p.demand.rating = parseFloat(it.rating) || 0;
+        saveDB(); renderWizard();
+      };
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="verdict v-warn" style="margin-top:10px">出错：' + esc(e.message) + '</div>';
+  }
+}
+
+async function doFetchAsin(p) {
+  var msg = $('fetchMsg');
+  var asin = (p.asin || '').trim().toUpperCase();
+  if (!/^[A-Z0-9]{10}$/.test(asin)) {
+    msg.innerHTML = '<b style="color:#b26a00">先在①填好 ASIN（10 位）</b>'; return;
+  }
+  if (!(await checkFetcher())) { alert(needFetcher()); return; }
+
+  msg.innerHTML = '<span class="spinner"></span>正在抓…';
+  try {
+    var d = await fetcherGet('/api/amazon/product?asin=' + encodeURIComponent(asin));
+    if (!d.ok) { msg.innerHTML = '<b style="color:#b26a00">' + esc(d.error) + '</b>'; return; }
+    if (d.reviews) p.demand.reviews = parseInt(String(d.reviews).replace(/,/g, ''), 10) || p.demand.reviews;
+    if (d.rating) p.demand.rating = parseFloat(d.rating) || p.demand.rating;
+    if (d.price) p.price = parseFloat(d.price) || p.price;
+    if (d.title && !p.name) p.name = d.title;
+    if (d.brand && !p.brand.note) p.brand.note = '品牌：' + d.brand;
+    if (d.transparency) p.transparency.hasIt = true;
+    var bsrNum = 0;
+    var bm = String(d.bsr || '').match(/#([\d,]+)/);
+    if (bm) bsrNum = parseInt(bm[1].replace(/,/g, ''), 10) || 0;
+    if (bsrNum) p.demand.bsr = bsrNum;
+    saveDB();
+    msg.innerHTML = '<b style="color:#12925a">已抓取：'
+      + (d.rating ? d.rating + ' 星 ' : '') + (d.reviews ? d.reviews + ' 评 ' : '')
+      + (d.bsr ? '| ' + d.bsr + ' ' : '') + (d.brand ? '| ' + d.brand : '') + '</b>';
+    setTimeout(function () { renderWizard(); }, 900);
+  } catch (e) {
+    msg.innerHTML = '<b style="color:#b02b2b">出错：' + esc(e.message) + '</b>';
+  }
+}
+
+async function showLinks(kind, p) {
+  var box = $('linkBox');
+  if (!box) return;
+  var q = p.name || p.asin || '';
+  box.innerHTML = '<div class="note" style="margin-top:10px"><span class="spinner"></span>准备检索入口…</div>';
+  var d;
+  try {
+    d = await fetcherGet('/api/links?type=' + kind + '&q=' + encodeURIComponent(q), 8000);
+  } catch (e) {
+    // 抓取助手没开也能用：前端自己生成链接
+    var eq = encodeURIComponent(q);
+    var fallback = {
+      patent: [
+        { name: 'USPTO 专利公共检索（官方）', url: 'https://ppubs.uspto.gov/pubwebapp/static/pages/ppubsbasic.html' },
+        { name: 'Espacenet 全球专利（EPO）', url: 'https://worldwide.espacenet.com/patent/search?q=' + eq }
+      ],
+      trademark: [
+        { name: 'USPTO 商标检索（官方）', url: 'https://tmsearch.uspto.gov/search/search-information' }
+      ],
+      '1688': [
+        { name: '1688 搜索货源', url: 'https://s.1688.com/selloffer/offer_search.htm?keywords=' + eq }
+      ]
+    };
+    d = { title: '检索入口', links: fallback[kind] || [], tip: '' };
+  }
+  box.innerHTML = d.links.map(function (l) {
+    return '<a class="linkbtn" href="' + esc(l.url) + '" target="_blank" rel="noopener">↗ ' + esc(l.name) + '</a>';
+  }).join('') + (d.tip ? '<div class="note" style="margin-top:8px">' + esc(d.tip) + '</div>' : '');
+}
+
+/* ==================================================================
+   5. 快速算利润抽屉
+   ================================================================== */
+var QF = ['purchase','domestic','firstleg','weight','price','rate','commission','fba','other'];
+function qRead() {
+  function n(id) { return num($('q_' + id).value); }
+  return { purchase: n('purchase'), domestic: n('domestic'), firstLegPerKg: n('firstleg'),
+    weightG: n('weight'), price: n('price'), rate: n('rate'),
+    commissionPct: n('commission'), fbaFee: n('fba'), otherPct: n('other') };
+}
+function qCompute(p) {
+  var revenue = p.price * p.rate;
+  var commission = revenue * p.commissionPct / 100;
+  var fba = p.fbaFee * p.rate;
+  var firstLeg = p.weightG / 1000 * p.firstLegPerKg;
+  var other = revenue * p.otherPct / 100;
+  var base = p.purchase + p.domestic + firstLeg;
+  var cost = base + commission + fba + other;
+  var profit = revenue - cost;
+  var margin = revenue > 0 ? profit / revenue * 100 : 0;
+  var varRate = (p.commissionPct + p.otherPct) / 100;
+  var bePrice = (1 - varRate) > 0 ? (base + fba) / (p.rate * (1 - varRate)) : 0;
+  return { revenue: revenue, cost: cost, profit: profit, margin: margin, bePrice: bePrice };
+}
+function qRender() {
+  var p = qRead(); var r = qCompute(p); var win = r.profit >= 0;
+  $('q_profit').textContent = (win ? '+' : '') + money(r.profit);
+  $('q_profit').className = 'big ' + (win ? 'up' : 'down');
+  $('q_margin').textContent = r.margin.toFixed(1) + '%';
+  $('q_margin').className = 'pct ' + (win ? 'bg-up' : 'bg-down');
+  $('q_revenue').textContent = money(r.revenue);
+  $('q_cost').textContent = money(r.cost);
+  $('q_be').textContent = '$' + r.bePrice.toFixed(2);
+  var v = $('q_verdict');
+  if (r.margin >= 20) { v.className = 'verdict v-pass'; v.textContent = '✅ 利润率 ' + r.margin.toFixed(1) + '%，值得做。'; }
+  else if (r.margin >= 10) { v.className = 'verdict v-warn'; v.textContent = '⚠️ 利润率 ' + r.margin.toFixed(1) + '%，偏薄。'; }
+  else if (r.margin >= 0) { v.className = 'verdict v-warn'; v.textContent = '🚨 利润率只有 ' + r.margin.toFixed(1) + '%，不建议。'; }
+  else { v.className = 'verdict v-block'; v.textContent = '❌ 每件亏 ' + money(Math.abs(r.profit)) + '。'; }
+}
+QF.forEach(function (f) { var el = $('q_' + f); if (el) el.addEventListener('input', qRender); });
+
+/* ==================================================================
+   6. AI（工具调用）
+   ================================================================== */
+var TOOLS = [
+  { type: 'function', function: { name: 'get_product',
+    description: '读取当前正在处理的候选商品的全部数据（基本信息、需求数据、专利/品牌/透明计划状态、供应商、成本）。用户问"这个商品"相关问题时先调用它。',
+    parameters: { type: 'object', properties: {}, required: [] } } },
+  { type: 'function', function: { name: 'check_eligibility',
+    description: '判断当前商品能不能跟卖，返回结论和所有风险点。',
+    parameters: { type: 'object', properties: {}, required: [] } } },
+  { type: 'function', function: { name: 'calc_profit',
+    description: '计算亚马逊 FBA 单件利润、利润率和盈亏平衡售价。不传参数就用当前商品已填的成本数据。',
+    parameters: { type: 'object', properties: {
+      purchase: { type: 'number', description: '采购价，人民币/件' },
+      domestic: { type: 'number', description: '国内运费，人民币/件' },
+      firstLegPerKg: { type: 'number', description: '头程运费，人民币/公斤' },
+      weightG: { type: 'number', description: '含包装重量，克' },
+      price: { type: 'number', description: '亚马逊售价，美元' },
+      rate: { type: 'number', description: '汇率，默认7.2' },
+      commissionPct: { type: 'number', description: '佣金率%，默认15' },
+      fbaFee: { type: 'number', description: 'FBA配送费，美元，默认4.75' },
+      otherPct: { type: 'number', description: '其他成本%，默认10' }
+    }, required: [] } } },
+  { type: 'function', function: { name: 'target_price',
+    description: '给定目标利润率，反推亚马逊应该定价多少美元。',
+    parameters: { type: 'object', properties: {
+      targetMarginPct: { type: 'number', description: '目标利润率，百分比' }
+    }, required: ['targetMarginPct'] } } },
+  /* ── 工具 4：头程运费估算 ──
+     想改默认单价？改下面 description 里的「默认45」和函数里的 45 即可。 */
+  { type: 'function', function: { name: 'estimate_first_leg',
+    description: '估算头程运费：按件数、单件重量、每公斤单价，算出总运费和单件分摊。用户问"头程运费多少""运费怎么算"时用。',
+    parameters: { type: 'object', properties: {
+      quantity: { type: 'number', description: '件数' },
+      unitWeightG: { type: 'number', description: '单件含包装重量，克' },
+      pricePerKg: { type: 'number', description: '头程单价，人民币/公斤，默认45' }
+    }, required: ['quantity', 'unitWeightG'] } } },
+  { type: 'function', function: { name: 'score_demand',
+    description: '根据月销量、BSR、评论数、评分给需求打分（0-100）。不传参数就用当前商品已填数据。',
+    parameters: { type: 'object', properties: {
+      monthly: { type: 'number', description: '月销量' },
+      bsr: { type: 'number', description: 'BSR 排名' },
+      reviews: { type: 'number', description: '评论数' },
+      rating: { type: 'number', description: '评分' }
+    }, required: [] } } },
+  { type: 'function', function: { name: 'pick_supplier',
+    description: '在当前商品的多个 1688 供应商里挑出综合最优的（价格 + 起订量）。',
+    parameters: { type: 'object', properties: {}, required: [] } } }
+];
+
+function toolGetProduct() {
+  var p = cur();
+  if (!p) return '当前没有打开任何商品。';
+  var ev = evaluate(p);
+  var ds = scoreDemand(p.demand);
+  var best = pickSupplier(p.suppliers);
+  return '当前商品数据：\n'
+    + '- 名称：' + (p.name || '未填') + '｜ASIN：' + (p.asin || '未填') + '｜类目：' + (p.category || '未填')
+    + '｜售价 $' + num(p.price) + '\n'
+    + '- 需求：月销 ' + num(p.demand.monthly) + ' 件、BSR ' + num(p.demand.bsr)
+    + '、评论 ' + num(p.demand.reviews) + ' 条、评分 ' + num(p.demand.rating)
+    + ' → 评分 ' + ds.score + '/100\n'
+    + '- 专利：' + (p.patent.checked ? '已查，风险' + p.patent.risk : '未查') + '\n'
+    + '- 透明计划：' + (p.transparency.hasIt ? '已加入（不可跟卖）' : '无') + '\n'
+    + '- 品牌备案：' + (p.brand.registered ? '有（不可跟卖）' : '无') + '\n'
+    + '- 供应商：' + (p.suppliers.filter(function (s) { return s.name; }).map(function (s) {
+        return s.name + ' ¥' + num(s.price) + '/起订' + num(s.moq); }).join('；') || '未填') + '\n'
+    + (best ? '- 推荐供应商：' + best.name + '\n' : '')
+    + '- 成本参数：采购 ¥' + num(p.cost.purchase) + '、重量 ' + num(p.cost.weightG) + 'g、售价 $'
+    + num(p.cost.price) + '、汇率 ' + num(p.cost.rate) + '、佣金 ' + num(p.cost.commissionPct)
+    + '%、FBA $' + num(p.cost.fbaFee) + '、其他 ' + num(p.cost.otherPct) + '%\n'
+    + '- 风控结论：' + (ev.eligible ? '可以跟卖' : '不可跟卖') + '\n'
+    + ev.reasons.map(function (r) { return '  · ' + r.m + '\n'; }).join('');
+}
+
+function toolEligibility() {
+  var p = cur();
+  if (!p) return '当前没有打开任何商品。';
+  var ev = evaluate(p);
+  return '风控结论：' + (ev.eligible ? '✅ 可以跟卖' : '❌ 不可跟卖') + '\n'
+    + ev.reasons.map(function (r) {
+        return (r.t === 'block' ? '❌ ' : r.t === 'warn' ? '⚠️ ' : '✅ ') + r.m;
+      }).join('\n');
+}
+
+function toolCalcProfit(a) {
+  var p = cur();
+  var c = (p && p.cost) || {};
+  var use = {
+    purchase: a.purchase !== undefined ? num(a.purchase) : num(c.purchase),
+    domestic: a.domestic !== undefined ? num(a.domestic) : num(c.domestic),
+    firstLegPerKg: a.firstLegPerKg !== undefined ? num(a.firstLegPerKg) : num(c.firstLegPerKg),
+    weightG: a.weightG !== undefined ? num(a.weightG) : num(c.weightG),
+    price: a.price !== undefined ? num(a.price) : num(c.price),
+    rate: a.rate !== undefined ? num(a.rate) : num(c.rate, 7.2),
+    commissionPct: a.commissionPct !== undefined ? num(a.commissionPct) : num(c.commissionPct, 15),
+    fbaFee: a.fbaFee !== undefined ? num(a.fbaFee) : num(c.fbaFee),
+    otherPct: a.otherPct !== undefined ? num(a.otherPct) : num(c.otherPct, 10)
+  };
+  var r = qCompute(use);
+  return '利润核算：\n'
+    + '- 售价 $' + use.price + ' 折合 ' + money(r.revenue) + '\n'
+    + '- 总成本 ' + money(r.cost) + '\n'
+    + '- 单件利润 ' + money(r.profit) + '，利润率 ' + r.margin.toFixed(1) + '%\n'
+    + '- 盈亏平衡售价 $' + r.bePrice.toFixed(2);
+}
+
+function toolTargetPrice(a) {
+  var p = cur();
+  var c = (p && p.cost) || {};
+  var m = num(a.targetMarginPct, 20) / 100;
+  var rate = num(c.rate, 7.2);
+  var varRate = (num(c.commissionPct, 15) + num(c.otherPct, 10)) / 100;
+  var fba = num(c.fbaFee) * rate;
+  var base = num(c.purchase) + num(c.domestic) + num(c.weightG) / 1000 * num(c.firstLegPerKg);
+  var denom = rate * (1 - varRate - m);
+  if (denom <= 0) return '这个目标利润率做不到：佣金 + 其他成本 + 目标利润率已经超过 100%。';
+  return '要做到 ' + (m * 100).toFixed(0) + '% 利润率，售价至少要 $' + ((base + fba) / denom).toFixed(2)
+    + '。\n（固定成本 ' + money(base) + ' + FBA ' + money(fba) + '）';
+}
+
+/* ── 工具 4 实现：头程运费估算 ──
+   这就是"给 Agent 装一只手"：写一个函数，再在 TOOLS 里登记一行，它就会用了。
+   想改默认单价，把下面的 45 改成你的数。 */
+function toolFirstLeg(a) {
+  var qty = num(a.quantity, 1) || 1;                        // 件数
+  var unitG = num(a.unitWeightG);                           // 单件重量（克）
+  var ppk = (a.pricePerKg !== undefined) ? num(a.pricePerKg) : 45;  // ¥/kg
+  var totalKg = qty * unitG / 1000;                         // 总重量换算成公斤
+  var total = totalKg * ppk;                                // 总运费
+  return '头程运费估算：\n'
+    + '- ' + qty + ' 件 × ' + unitG + ' g = 总重 ' + totalKg.toFixed(2) + ' kg\n'
+    + '- 按 ¥' + ppk + '/kg 算，总运费 ' + money(total) + '\n'
+    + '- 单件分摊 ' + money(total / qty) + '（把单件重量和这个单价填进「利润核算」即可）';
+}
+
+function toolScoreDemand(a) {
+  var p = cur();
+  var d = (p && p.demand) || {};
+  var use = {
+    monthly: a.monthly !== undefined ? num(a.monthly) : num(d.monthly),
+    bsr: a.bsr !== undefined ? num(a.bsr) : num(d.bsr),
+    reviews: a.reviews !== undefined ? num(a.reviews) : num(d.reviews),
+    rating: a.rating !== undefined ? num(a.rating) : num(d.rating)
+  };
+  var r = scoreDemand(use);
+  return '需求评分：' + r.score + '/100\n' + r.notes.map(function (n) { return '- ' + n; }).join('\n');
+}
+
+function toolPickSupplier() {
+  var p = cur();
+  if (!p) return '当前没有打开任何商品。';
+  var best = pickSupplier(p.suppliers);
+  if (!best) return '还没填供应商（至少要有名称和单价）。';
+  return '推荐供应商：' + best.name + '\n- 单价 ¥' + num(best.price)
+    + '\n- 起订量 ' + num(best.moq) + ' 件\n- 综合评分 ' + best._score.toFixed(1)
+    + '（价格 70 分 + 起订量 30 分）\n- 备注：' + (best.note || '无');
+}
+
+function runTool(name, args) {
+  try {
+    if (name === 'get_product') return toolGetProduct();
+    if (name === 'check_eligibility') return toolEligibility();
+    if (name === 'calc_profit') return toolCalcProfit(args || {});
+    if (name === 'target_price') return toolTargetPrice(args || {});
+    if (name === 'estimate_first_leg') return toolFirstLeg(args || {});
+    if (name === 'score_demand') return toolScoreDemand(args || {});
+    if (name === 'pick_supplier') return toolPickSupplier();
+    return '未知工具：' + name;
+  } catch (e) { return '工具出错：' + e.message; }
+}
+
+var SYSTEM = '你是「ymx」，一个亚马逊 FBA 选品风控助手。'
+  + '说话直接、务实、不废话，像个懂电商的老手，会主动提醒风险。'
+  + '你可以调用工具：get_product（读当前商品数据）、check_eligibility（判断能否跟卖）、'
+  + 'calc_profit（算利润）、target_price（反推售价）、estimate_first_leg（头程运费估算）、'
+  + 'score_demand（需求打分）、pick_supplier（供应商比价）。'
+  + '用户提到"这个商品""当前商品"时，先调 get_product 或 check_eligibility 拿数据，不要凭空猜。'
+  + '涉及跟卖风险时，态度要保守：宁可劝退，不要误导。'
+  + '回答用中文，简洁，关键数字要突出。';
+
+var history = [];
+async function callLLM(messages) {
+  var c = getCfg();
+  var url = String(c.base_url).replace(/\/+$/, '') + '/chat/completions';
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.api_key },
+    body: JSON.stringify({ model: c.model, messages: messages, tools: TOOLS,
+      tool_choice: 'auto', temperature: 0.7 })
+  });
+  if (!res.ok) { var t = ''; try { t = (await res.text()).slice(0, 300); } catch (e) {}
+    throw new Error('HTTP ' + res.status + ' ' + t); }
+  return await res.json();
+}
+async function runAgent(text) {
+  var messages = [{ role: 'system', content: SYSTEM }];
+  history.slice(-10).forEach(function (m) { messages.push(m); });
+  messages.push({ role: 'user', content: text });
+  var trace = [];
+  for (var i = 0; i < 5; i++) {
+    var data = await callLLM(messages);
+    var msg = data.choices[0].message;
+    var calls = msg.tool_calls;
+    if (!calls || !calls.length) return { reply: msg.content || '（没有返回内容）', trace: trace };
+    messages.push({ role: 'assistant', content: msg.content || '', tool_calls: calls });
+    for (var j = 0; j < calls.length; j++) {
+      var cc = calls[j];
+      var args = {};
+      try { args = JSON.parse(cc.function.arguments || '{}'); } catch (e) {}
+      var result = runTool(cc.function.name, args);
+      trace.push({ tool: cc.function.name, result: result });
+      messages.push({ role: 'tool', tool_call_id: cc.id, content: result });
+    }
+  }
+  return { reply: '（工具调用次数太多，先停一下）', trace: trace };
+}
+
+/* AI 界面 */
+function md(s) {
+  var h = esc(s);
+  h = h.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
+function addMsg(role, text, trace) {
+  var w = document.createElement('div');
+  w.className = 'msg ' + role;
+  var b = document.createElement('div');
+  b.className = 'bubble'; b.innerHTML = md(text);
+  w.appendChild(b);
+  if (trace && trace.length) {
+    var t = document.createElement('div');
+    t.className = 'trace';
+    t.innerHTML = trace.map(function (x) {
+      return '<span class="chip" title="' + esc(x.result) + '">🔧 ' + esc(x.tool) + '</span>';
+    }).join('');
+    w.appendChild(t);
+  }
+  $('chat').appendChild(w);
+  $('chat').scrollTop = $('chat').scrollHeight;
+  return w;
+}
+var busy = false;
+async function send(preset) {
+  var text = (typeof preset === 'string') ? preset : $('input').value.trim();
+  if (!text || busy) return;
+  if (!cfgReady()) {
+    addMsg('agent', '还没填 API Key 😅 点右上角 **⚙** 填一个（推荐 DeepSeek）。\n\n'
+      + '**不填也能用**：流水线的记录、打分、风控拦截、利润核算全是本地算的，AI 只是帮你分析和写话术。');
+    return;
+  }
+  busy = true; $('btnSend').disabled = true; $('input').value = '';
+  addMsg('user', text);
+  var th = addMsg('agent', '正在看…');
+  try {
+    var out = await runAgent(text);
+    th.remove();
+    addMsg('agent', out.reply, out.trace);
+    history.push({ role: 'user', content: text });
+    history.push({ role: 'assistant', content: out.reply });
+  } catch (e) {
+    th.remove();
+    addMsg('agent', '调用失败：' + e.message + '\n\n常见原因：Key 填错、余额不足、网络被代理拦。');
+  }
+  busy = false; $('btnSend').disabled = false;
+}
+$('btnSend').onclick = function () { send(); };
+$('input').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+var QUICK = [
+  '这个商品能跟卖吗？',
+  '帮我算算这个商品的利润',
+  '这个商品有什么风险？',
+  '帮我想一段跟 1688 供应商谈价的话术'
+];
+$('quick').innerHTML = QUICK.map(function (q) {
+  return '<button data-q="' + esc(q) + '">' + esc(q) + '</button>';
+}).join('');
+Array.prototype.forEach.call($('quick').querySelectorAll('button'), function (el) {
+  el.onclick = function () { send(el.getAttribute('data-q')); };
+});
+
+function refreshAIHint() {
+  var p = cur();
+  $('aiCtx').innerHTML = p
+    ? '当前商品：<b>' + esc(p.name || '未命名') + '</b>'
+    : '还没有打开任何商品（在列表里点一个进去）。';
+  $('aiHint').innerHTML = cfgReady()
+    ? '✅ 已连接 <b>' + esc(getCfg().model) + '</b>'
+    : '⚠️ 还没填 API Key —— 点右上角 ⚙。';
+}
+
+/* ==================================================================
+   7. 抽屉控制
+   ================================================================== */
+var mask = $('mask');
+var drawers = ['drSetting', 'drAI', 'drCalc'];
+function closeAll() {
+  drawers.forEach(function (d) { $(d).classList.remove('open'); });
+  mask.classList.remove('open');
+}
+function openDrawer(id) { closeAll(); $(id).classList.add('open'); mask.classList.add('open'); }
+mask.onclick = closeAll;
+Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (b) {
+  b.onclick = closeAll;
+});
+$('btnSetting').onclick = function () {
+  var c = getCfg();
+  $('f_base').value = c.base_url || 'https://api.deepseek.com';
+  $('f_model').value = c.model || 'deepseek-chat';
+  $('f_key').value = '';
+  openDrawer('drSetting');
+};
+$('btnAI').onclick = function () { refreshAIHint(); openDrawer('drAI'); };
+$('btnCalc').onclick = function () { qRender(); openDrawer('drCalc'); };
+$('btnSave').onclick = function () {
+  var c = getCfg();
+  c.base_url = $('f_base').value.trim() || 'https://api.deepseek.com';
+  c.model = $('f_model').value.trim() || 'deepseek-chat';
+  var k = $('f_key').value.trim();
+  if (k) c.api_key = k;
+  setCfg(c); closeAll(); refreshAIHint();
+};
+
+/* ==================================================================
+   8. 向导按钮
+   ================================================================== */
+$('btnNew').onclick = function () {
+  var p = newProduct();
+  DB.products.unshift(p);
+  saveDB();
+  openProduct(p.id);
+};
+$('btnBack').onclick = backToList;
+$('btnPrev').onclick = function () { if (DB.step > 0) { DB.step--; saveDB(); renderWizard(); window.scrollTo(0, 0); } };
+$('btnNext').onclick = function () { if (DB.step < STEPS.length - 1) { DB.step++; saveDB(); renderWizard(); window.scrollTo(0, 0); } };
+$('btnRename').onclick = function () {
+  var p = cur(); if (!p) return;
+  var n = prompt('改个名字：', p.name || '');
+  if (n !== null) { p.name = n; saveDB(); renderWizard(); }
+};
+$('btnDel').onclick = function () {
+  var p = cur(); if (!p) return;
+  if (!confirm('确定删除「' + (p.name || '未命名') + '」？删了找不回来。')) return;
+  DB.products = DB.products.filter(function (x) { return x.id !== p.id; });
+  DB.curId = null; saveDB(); backToList();
+};
+
+/* ==================================================================
+   9. 启动
+   ================================================================== */
+loadDB();
+if (DB.curId && cur()) {
+  $('viewList').classList.add('hidden');
+  $('viewWizard').classList.remove('hidden');
+  renderWizard();
+} else {
+  renderList();
+}
+refreshAIHint();
+checkFetcher();
+setInterval(checkFetcher, 15000);   // 每 15 秒探一次，随时开随时认
+</script>
+</body>
+</html>
